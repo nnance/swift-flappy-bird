@@ -15,8 +15,10 @@ func birdFactory(pos: CGPoint) -> SKSpriteNode {
     let makeBirdFlap = SKAction.repeatForever(animation)
 
     let bird = SKSpriteNode(texture: birdTexture)
+    bird.name = "bird"
     bird.position = pos
-    
+    bird.size = birdTexture.size()
+
     bird.run(makeBirdFlap)
 
     return bird
@@ -26,7 +28,7 @@ func backgroundFactory(y: CGFloat, height: CGFloat) -> [SKSpriteNode] {
     let bgTexture = SKTexture(imageNamed: "bg.png")
 
     let bgVector = CGVector(dx: -bgTexture.size().width, dy: 0)
-    let moveBGAnimation = SKAction.move(by: bgVector, duration: 3)
+    let moveBGAnimation = SKAction.move(by: bgVector, duration: 7)
 
     let shiftVector = CGVector(dx: bgTexture.size().width, dy: 0)
     let shiftBGAnimation = SKAction.move(by: shiftVector, duration: 0)
@@ -49,17 +51,37 @@ func backgroundFactory(y: CGFloat, height: CGFloat) -> [SKSpriteNode] {
     return results
 }
 
+func groundFactory(pos: CGPoint, width: CGFloat) -> SKNode {
+    let ground = SKNode()
+    ground.position = pos
+    ground.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: width, height: 1))
+    ground.physicsBody?.isDynamic = false
+    return ground
+}
+
+func startBird(bird: SKSpriteNode) {
+    bird.physicsBody = SKPhysicsBody(circleOfRadius: bird.size.height / 2)
+    bird.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+    bird.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 70))
+}
+
 class GameScene: SKScene {
-    
+
     override func didMove(to view: SKView) {
         let bgs = backgroundFactory(y: self.frame.midY, height: self.frame.height)
         bgs.forEach { self.addChild($0) }
         
         let bird = birdFactory(pos: CGPoint(x: self.frame.midX, y: self.frame.midY))
         self.addChild(bird)
+        
+        let groundPos = CGPoint(x: self.frame.midX, y: -self.frame.height / 2)
+        let ground = groundFactory(pos: groundPos, width: self.frame.width)
+        self.addChild(ground)
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        let bird = self.childNode(withName: "bird") as! SKSpriteNode
+        startBird(bird: bird)
     }
     
     override func update(_ currentTime: TimeInterval) {
