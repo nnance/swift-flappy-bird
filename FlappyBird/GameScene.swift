@@ -15,15 +15,26 @@ class GameScene: SKScene {
     
     override func didMove(to view: SKView) {
         let bgTexture = SKTexture(imageNamed: "bg.png")
-        let bgVector = CGVector(dx: -1, dy: 0)
-        let moveBGAnimation = SKAction.move(by: bgVector, duration: 0.1)
-        let moveBGForever = SKAction.repeatForever(moveBGAnimation)
 
-        bg = SKSpriteNode(texture: bgTexture)
-        bg.position = CGPoint(x: self.frame.midX, y: self.frame.midY)
-        bg.size.height = self.frame.height
-        bg.run(moveBGForever)
-        self.addChild(bg)
+        let bgVector = CGVector(dx: -bgTexture.size().width, dy: 0)
+        let moveBGAnimation = SKAction.move(by: bgVector, duration: 3)
+
+        let shiftVector = CGVector(dx: bgTexture.size().width, dy: 0)
+        let shiftBGAnimation = SKAction.move(by: shiftVector, duration: 0)
+
+        let moveBGForever = SKAction.repeatForever(SKAction.sequence([moveBGAnimation, shiftBGAnimation]))
+
+        var i: CGFloat = 0
+        while i < 3 {
+            bg = SKSpriteNode(texture: bgTexture)
+            bg.position = CGPoint(x: bgTexture.size().width * i, y: self.frame.midY)
+            bg.size.height = self.frame.height
+            bg.zPosition = -1
+            bg.run(moveBGForever)
+            self.addChild(bg)
+
+            i += 1
+        }
         
         let birdTexture = SKTexture(imageNamed: "flappy1.png")
         let birdTexture2 = SKTexture(imageNamed: "flappy2.png")
