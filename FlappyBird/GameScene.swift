@@ -59,20 +59,6 @@ func groundFactory(pos: CGPoint, width: CGFloat) -> SKNode {
     return ground
 }
 
-func getRandomOffset(frame: CGRect) -> CGFloat {
-    let movementAmmount = CGFloat(arc4random() % UInt32(frame.height / 2))
-    return movementAmmount - frame.height / 4
-}
-
-func getGapHeight(bird: SKSpriteNode) -> CGFloat {
-    return (bird.size.height * 4) / 2
-}
-
-func pipeMoveFactory(rect: CGRect) -> SKAction {
-    let movement = SKAction.move(by: CGVector(dx: -2 * rect.width, dy: 0), duration: TimeInterval(rect.width / 100))
-    return movement
-}
-
 func topPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     let pipeTexture = SKTexture(imageNamed: "pipe1.png")
     let pipe = SKSpriteNode(texture: pipeTexture)
@@ -87,6 +73,38 @@ func bottomPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     return pipe
 }
 
+func pipeFactory(bird: SKSpriteNode , frame: CGRect) -> [SKSpriteNode] {
+    let movementAmmount = CGFloat(arc4random() % UInt32(frame.height / 2))
+    let pipeOffset = movementAmmount - frame.height / 4
+
+    let gap = (bird.size.height * 4) / 2
+
+    let pipeMove = SKAction.move(by: CGVector(dx: -2 * frame.width, dy: 0), duration: TimeInterval(frame.width / 100))
+    let pipeStart = CGPoint(x: frame.midX + frame.width, y: frame.midY)
+    
+    let top = topPipeFactory(pos: pipeStart, offset: pipeOffset + gap)
+    top.run(pipeMove)
+
+    let bottom = bottomPipeFactory(pos: pipeStart, offset: pipeOffset - gap)
+    bottom.run(pipeMove)
+    
+    return [top, bottom]
+}
+
+func sceneFactory(frame: CGRect) -> [SKNode] {
+    let bgs = backgroundFactory(y: frame.midY, height: frame.height)
+    
+    let bird = birdFactory(pos: CGPoint(x: frame.midX, y: frame.midY))
+    
+    let groundPos = CGPoint(x: frame.midX, y: -frame.height / 2)
+    let ground = groundFactory(pos: groundPos, width: frame.width)
+    
+    let pipes = pipeFactory(bird: bird, frame: frame)
+    
+    let nodes = [bird, ground]
+    return Array([ bgs, nodes, pipes ].joined())
+}
+
 func startBird(bird: SKSpriteNode) {
     bird.physicsBody = SKPhysicsBody(circleOfRadius: bird.size.height / 2)
     bird.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
@@ -94,31 +112,20 @@ func startBird(bird: SKSpriteNode) {
 }
 
 class GameScene: SKScene {
+    
+    @objc func makePipes() {
+        let bird = self.childNode(withName: "bird") as! SKSpriteNode
+
+        let pipes = pipeFactory(bird: bird, frame: self.frame)
+        pipes.forEach { self.addChild($0) }
+    }
 
     override func didMove(to view: SKView) {
-        let bgs = backgroundFactory(y: self.frame.midY, height: self.frame.height)
-        bgs.forEach { self.addChild($0) }
         
-        let bird = birdFactory(pos: CGPoint(x: self.frame.midX, y: self.frame.midY))
-        self.addChild(bird)
+        Timer.scheduledTimer(timeInterval: 3, target: self, selector: #selector(self.makePipes), userInfo: nil, repeats: true)
         
-        let groundPos = CGPoint(x: self.frame.midX, y: -self.frame.height / 2)
-        let ground = groundFactory(pos: groundPos, width: self.frame.width)
-        self.addChild(ground)
-        
-        let pipeOffset = getRandomOffset(frame: self.frame)
-        let gape = getGapHeight(bird: bird)
-
-        let pipeMove = pipeMoveFactory(rect: self.frame)
-        let pipeStart = CGPoint(x: self.frame.midX + self.frame.width, y: self.frame.midY)
-        
-        let top = topPipeFactory(pos: pipeStart, offset: pipeOffset + gape)
-        top.run(pipeMove)
-        self.addChild(top)
-
-        let bottom = bottomPipeFactory(pos: pipeStart, offset: pipeOffset - gape)
-        bottom.run(pipeMove)
-        self.addChild(bottom)
+        let nodes = sceneFactory(frame: self.frame)
+        nodes.forEach { self.addChild($0) }
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
