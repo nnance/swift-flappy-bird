@@ -59,13 +59,18 @@ func groundFactory(pos: CGPoint, width: CGFloat) -> SKNode {
     return ground
 }
 
-func getRandomOffset(bird: SKSpriteNode, frame: CGRect) -> CGFloat {
-    let frameHeight = frame.height
-    let gapHeight = bird.size.height * 4
+func getRandomOffset(frame: CGRect) -> CGFloat {
+    let movementAmmount = CGFloat(arc4random() % UInt32(frame.height / 2))
+    return movementAmmount - frame.height / 4
+}
 
-    let movementAmmount = arc4random() % UInt32(frameHeight / 2)
-    let pipeOffset = CGFloat(movementAmmount) - frameHeight / 4
-    return gapHeight / 2 + pipeOffset
+func getGapHeight(bird: SKSpriteNode) -> CGFloat {
+    return (bird.size.height * 4) / 2
+}
+
+func pipeMoveFactory(rect: CGRect) -> SKAction {
+    let movement = SKAction.move(by: CGVector(dx: -2 * rect.width, dy: 0), duration: TimeInterval(rect.width / 100))
+    return movement
 }
 
 func topPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
@@ -78,7 +83,7 @@ func topPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
 func bottomPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     let pipeTexture = SKTexture(imageNamed: "pipe2.png")
     let pipe = SKSpriteNode(texture: pipeTexture)
-    pipe.position = CGPoint(x: pos.x, y: pos.y - pipeTexture.size().height / 2 - offset)
+    pipe.position = CGPoint(x: pos.x, y: pos.y - pipeTexture.size().height / 2 + offset)
     return pipe
 }
 
@@ -101,12 +106,18 @@ class GameScene: SKScene {
         let ground = groundFactory(pos: groundPos, width: self.frame.width)
         self.addChild(ground)
         
-        let pipeOffset = getRandomOffset(bird: bird, frame: self.frame)
+        let pipeOffset = getRandomOffset(frame: self.frame)
+        let gape = getGapHeight(bird: bird)
+
+        let pipeMove = pipeMoveFactory(rect: self.frame)
+        let pipeStart = CGPoint(x: self.frame.midX + self.frame.width, y: self.frame.midY)
         
-        let top = topPipeFactory(pos: CGPoint(x: self.frame.midX, y: self.frame.midY), offset: pipeOffset)
+        let top = topPipeFactory(pos: pipeStart, offset: pipeOffset + gape)
+        top.run(pipeMove)
         self.addChild(top)
 
-        let bottom = bottomPipeFactory(pos: CGPoint(x: self.frame.midX, y: self.frame.midY), offset: pipeOffset)
+        let bottom = bottomPipeFactory(pos: pipeStart, offset: pipeOffset - gape)
+        bottom.run(pipeMove)
         self.addChild(bottom)
     }
     
