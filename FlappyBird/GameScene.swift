@@ -7,6 +7,17 @@
 
 import SpriteKit
 
+enum ColliderType: UInt32 {
+    case Bird = 1
+    case Object = 2
+}
+
+func setCollision(node: SKNode, type: ColliderType) {
+    node.physicsBody?.contactTestBitMask = ColliderType.Object.rawValue
+    node.physicsBody?.categoryBitMask = type.rawValue
+    node.physicsBody?.collisionBitMask = type.rawValue
+}
+
 func birdFactory(pos: CGPoint) -> SKSpriteNode {
     let birdTexture = SKTexture(imageNamed: "flappy1.png")
     let birdTexture2 = SKTexture(imageNamed: "flappy2.png")
@@ -20,7 +31,7 @@ func birdFactory(pos: CGPoint) -> SKSpriteNode {
     bird.size = birdTexture.size()
 
     bird.run(makeBirdFlap)
-
+    
     return bird
 }
 
@@ -56,6 +67,7 @@ func groundFactory(pos: CGPoint, width: CGFloat) -> SKNode {
     ground.position = pos
     ground.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: width, height: 1))
     ground.physicsBody?.isDynamic = false
+    setCollision(node: ground, type: ColliderType.Object)
     return ground
 }
 
@@ -63,6 +75,9 @@ func topPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     let pipeTexture = SKTexture(imageNamed: "pipe1.png")
     let pipe = SKSpriteNode(texture: pipeTexture)
     pipe.position = CGPoint(x: pos.x, y: pos.y + pipeTexture.size().height / 2 + offset)
+    pipe.physicsBody = SKPhysicsBody(rectangleOf: pipeTexture.size())
+    pipe.physicsBody?.isDynamic = false
+    setCollision(node: pipe, type: ColliderType.Object)
     return pipe
 }
 
@@ -70,6 +85,9 @@ func bottomPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     let pipeTexture = SKTexture(imageNamed: "pipe2.png")
     let pipe = SKSpriteNode(texture: pipeTexture)
     pipe.position = CGPoint(x: pos.x, y: pos.y - pipeTexture.size().height / 2 + offset)
+    pipe.physicsBody = SKPhysicsBody(rectangleOf: pipeTexture.size())
+    pipe.physicsBody?.isDynamic = false
+    setCollision(node: pipe, type: ColliderType.Object)
     return pipe
 }
 
@@ -108,10 +126,18 @@ func sceneFactory(frame: CGRect) -> [SKNode] {
 func startBird(bird: SKSpriteNode) {
     bird.physicsBody = SKPhysicsBody(circleOfRadius: bird.size.height / 2)
     bird.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+    setCollision(node: bird, type: ColliderType.Bird)
+}
+
+func flapBird(bird: SKSpriteNode) {
+    bird.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
     bird.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 70))
 }
 
-class GameScene: SKScene {
+class GameScene: SKScene, SKPhysicsContactDelegate {
+    
+    var started = false
+    var ended = false
     
     @objc func makePipes() {
         let bird = self.childNode(withName: "bird") as! SKSpriteNode
@@ -121,7 +147,7 @@ class GameScene: SKScene {
     }
 
     override func didMove(to view: SKView) {
-        
+        self.physicsWorld.contactDelegate = self
         Timer.scheduledTimer(timeInterval: 3, target: self, selector: #selector(self.makePipes), userInfo: nil, repeats: true)
         
         let nodes = sceneFactory(frame: self.frame)
@@ -130,7 +156,17 @@ class GameScene: SKScene {
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let bird = self.childNode(withName: "bird") as! SKSpriteNode
-        startBird(bird: bird)
+        if (!self.started) {
+            startBird(bird: bird)
+            self.started = true
+        } else if (!self.ended) {
+            flapBird(bird: bird)
+        }
+    }
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        self.speed = 0
+        self.ended = true
     }
     
     override func update(_ currentTime: TimeInterval) {
