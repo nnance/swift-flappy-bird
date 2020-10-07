@@ -20,8 +20,8 @@ func setCollision(node: SKNode, type: ColliderType) {
 }
 
 func birdFactory(pos: CGPoint) -> SKSpriteNode {
-    let birdTexture = SKTexture(imageNamed: "flappy1.png")
-    let birdTexture2 = SKTexture(imageNamed: "flappy2.png")
+    let birdTexture = SKTexture(imageNamed: "flappy1")
+    let birdTexture2 = SKTexture(imageNamed: "flappy2")
     
     let animation = SKAction.animate(with: [birdTexture, birdTexture2], timePerFrame: 0.1)
     let makeBirdFlap = SKAction.repeatForever(animation)
@@ -37,7 +37,7 @@ func birdFactory(pos: CGPoint) -> SKSpriteNode {
 }
 
 func backgroundFactory(y: CGFloat, height: CGFloat) -> [SKSpriteNode] {
-    let bgTexture = SKTexture(imageNamed: "bg.png")
+    let bgTexture = SKTexture(imageNamed: "bg")
 
     let bgVector = CGVector(dx: -bgTexture.size().width, dy: 0)
     let moveBGAnimation = SKAction.move(by: bgVector, duration: 7)
@@ -84,16 +84,16 @@ func pipeFactory(pos: CGPoint, offset: CGFloat, imageNamed: String) -> SKSpriteN
 }
 
 func topPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
-    let pipeTexture = SKTexture(imageNamed: "pipe1.png")
+    let pipeTexture = SKTexture(imageNamed: "pipe1")
     let pos = CGPoint(x: pos.x, y: pos.y + pipeTexture.size().height / 2 + offset)
-    let pipe = pipeFactory(pos: pos, offset: offset, imageNamed: "pipe1.png")
+    let pipe = pipeFactory(pos: pos, offset: offset, imageNamed: "pipe1")
     return pipe
 }
 
 func bottomPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
-    let pipeTexture = SKTexture(imageNamed: "pipe2.png")
+    let pipeTexture = SKTexture(imageNamed: "pipe2")
     let pos = CGPoint(x: pos.x, y: pos.y - pipeTexture.size().height / 2 + offset)
-    let pipe = pipeFactory(pos: pos, offset: offset, imageNamed: "pipe2.png")
+    let pipe = pipeFactory(pos: pos, offset: offset, imageNamed: "pipe2")
     return pipe
 }
 
