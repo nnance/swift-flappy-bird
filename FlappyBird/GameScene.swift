@@ -54,7 +54,7 @@ func backgroundFactory(y: CGFloat, height: CGFloat) -> [SKSpriteNode] {
         let bg = SKSpriteNode(texture: bgTexture)
         bg.position = CGPoint(x: bgTexture.size().width * i, y: y)
         bg.size.height = height
-        bg.zPosition = -1
+        bg.zPosition = -2
         bg.run(moveBGForever)
         results.append(bg)
 
@@ -76,6 +76,7 @@ func topPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     let pipeTexture = SKTexture(imageNamed: "pipe1.png")
     let pipe = SKSpriteNode(texture: pipeTexture)
     pipe.position = CGPoint(x: pos.x, y: pos.y + pipeTexture.size().height / 2 + offset)
+    pipe.zPosition = -1
     pipe.physicsBody = SKPhysicsBody(rectangleOf: pipeTexture.size())
     pipe.physicsBody?.isDynamic = false
     setCollision(node: pipe, type: ColliderType.Object)
@@ -86,10 +87,22 @@ func bottomPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     let pipeTexture = SKTexture(imageNamed: "pipe2.png")
     let pipe = SKSpriteNode(texture: pipeTexture)
     pipe.position = CGPoint(x: pos.x, y: pos.y - pipeTexture.size().height / 2 + offset)
+    pipe.zPosition = -1
     pipe.physicsBody = SKPhysicsBody(rectangleOf: pipeTexture.size())
     pipe.physicsBody?.isDynamic = false
     setCollision(node: pipe, type: ColliderType.Object)
     return pipe
+}
+
+func gapFactory(frame: CGRect, pos: CGPoint, size: CGSize) -> SKNode {
+    let gapNode = SKNode()
+    gapNode.position = pos
+    gapNode.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: size.width, height: size.height))
+    gapNode.physicsBody?.isDynamic = false
+    gapNode.physicsBody?.contactTestBitMask = ColliderType.Bird.rawValue
+    gapNode.physicsBody?.categoryBitMask = ColliderType.Gap.rawValue
+    gapNode.physicsBody?.collisionBitMask = ColliderType.Gap.rawValue
+    return gapNode
 }
 
 func pipeFactory(bird: SKSpriteNode , frame: CGRect) -> [SKNode] {
@@ -110,15 +123,11 @@ func pipeFactory(bird: SKSpriteNode , frame: CGRect) -> [SKNode] {
     let bottom = bottomPipeFactory(pos: pipeStart, offset: pipeOffset - gapHeight)
     bottom.run(moveAndRemovePipes)
     
-    let gapNode = SKNode()
-    gapNode.position = CGPoint(x: frame.midX + frame.width, y: frame.midY + pipeOffset)
-    gapNode.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: top.size.width, height: gapHeight))
-    gapNode.physicsBody?.isDynamic = false
-    gapNode.run(pipeMove)
-    gapNode.physicsBody?.contactTestBitMask = ColliderType.Bird.rawValue
-    gapNode.physicsBody?.categoryBitMask = ColliderType.Gap.rawValue
-    gapNode.physicsBody?.collisionBitMask = ColliderType.Gap.rawValue
-    
+    let gapPos = CGPoint(x: frame.midX + frame.width, y: frame.midY + pipeOffset)
+    let gapSize = CGSize(width: top.size.width, height: gapHeight)
+    let gapNode = gapFactory(frame: frame, pos: gapPos, size: gapSize)
+    gapNode.run(moveAndRemovePipes)
+
     return [top, bottom, gapNode]
 }
 
@@ -164,6 +173,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var started = false
     var ended = false
     var score = 0
+    var timer = Timer()
     
     @objc func makePipes() {
         let bird = self.childNode(withName: "bird") as! SKSpriteNode
@@ -174,7 +184,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     override func didMove(to view: SKView) {
         self.physicsWorld.contactDelegate = self
-        Timer.scheduledTimer(timeInterval: 3, target: self, selector: #selector(self.makePipes), userInfo: nil, repeats: true)
+        setupGame()
+    }
+    
+    func setupGame() {
+        timer = Timer.scheduledTimer(timeInterval: 3, target: self, selector: #selector(self.makePipes), userInfo: nil, repeats: true)
         
         let nodes = sceneFactory(frame: self.frame)
         nodes.forEach { self.addChild($0) }
@@ -182,11 +196,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let bird = self.childNode(withName: "bird") as! SKSpriteNode
-        if (!self.started) {
+        if (!started) {
             startBird(bird: bird)
-            self.started = true
-        } else if (!self.ended) {
+            started = true
+        } else if (!ended) {
             flapBird(bird: bird)
+        } else {
+            started = false
+            ended = false
+            score = 0
+            self.speed = 1
+            
+            self.removeAllChildren()
+            timer.invalidate()
+            setupGame()
         }
     }
     
@@ -198,6 +221,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         } else {
             self.speed = 0
             self.ended = true
+            
+            let gameOverLabel = SKLabelNode()
+            gameOverLabel.fontName = "Helvetica"
+            gameOverLabel.fontSize = 30
+            gameOverLabel.text = "Game Over! Tap to play again."
+            gameOverLabel.position = CGPoint(x: self.frame.midX, y: self.frame.midY)
+            self.addChild(gameOverLabel)
         }
     }
     
