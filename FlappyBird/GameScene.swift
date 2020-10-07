@@ -99,13 +99,16 @@ func pipeFactory(bird: SKSpriteNode , frame: CGRect) -> [SKNode] {
     let gapHeight = (bird.size.height * 4) / 2
 
     let pipeMove = SKAction.move(by: CGVector(dx: -2 * frame.width, dy: 0), duration: TimeInterval(frame.width / 100))
+    let removePipes = SKAction.removeFromParent()
+    let moveAndRemovePipes = SKAction.sequence([pipeMove, removePipes])
+    
     let pipeStart = CGPoint(x: frame.midX + frame.width, y: frame.midY)
     
     let top = topPipeFactory(pos: pipeStart, offset: pipeOffset + gapHeight)
-    top.run(pipeMove)
+    top.run(moveAndRemovePipes)
 
     let bottom = bottomPipeFactory(pos: pipeStart, offset: pipeOffset - gapHeight)
-    bottom.run(pipeMove)
+    bottom.run(moveAndRemovePipes)
     
     let gapNode = SKNode()
     gapNode.position = CGPoint(x: frame.midX + frame.width, y: frame.midY + pipeOffset)
@@ -115,8 +118,18 @@ func pipeFactory(bird: SKSpriteNode , frame: CGRect) -> [SKNode] {
     gapNode.physicsBody?.contactTestBitMask = ColliderType.Bird.rawValue
     gapNode.physicsBody?.categoryBitMask = ColliderType.Gap.rawValue
     gapNode.physicsBody?.collisionBitMask = ColliderType.Gap.rawValue
-
+    
     return [top, bottom, gapNode]
+}
+
+func scoreFactory(frame: CGRect) -> SKLabelNode {
+    let scoreLabel = SKLabelNode()
+    scoreLabel.name = "score"
+    scoreLabel.fontName = "Helvetica"
+    scoreLabel.fontSize = 60
+    scoreLabel.text = "0"
+    scoreLabel.position = CGPoint(x: frame.midX, y: frame.height / 2 - 180)
+    return scoreLabel
 }
 
 func sceneFactory(frame: CGRect) -> [SKNode] {
@@ -129,7 +142,9 @@ func sceneFactory(frame: CGRect) -> [SKNode] {
     
     let pipes = pipeFactory(bird: bird, frame: frame)
     
-    let nodes = [bird, ground]
+    let score = scoreFactory(frame: frame)
+    
+    let nodes = [score, bird, ground]
     return Array([ bgs, nodes, pipes ].joined())
 }
 
@@ -148,6 +163,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var started = false
     var ended = false
+    var score = 0
     
     @objc func makePipes() {
         let bird = self.childNode(withName: "bird") as! SKSpriteNode
@@ -176,7 +192,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     func didBegin(_ contact: SKPhysicsContact) {
         if contact.bodyA.categoryBitMask == ColliderType.Gap.rawValue || contact.bodyB.categoryBitMask == ColliderType.Gap.rawValue {
-            print("add one to score")
+            score += 1
+            let scoreNode = self.childNode(withName: "score") as! SKLabelNode
+            scoreNode.text = String(score)
         } else {
             self.speed = 0
             self.ended = true
