@@ -10,6 +10,7 @@ import SpriteKit
 enum ColliderType: UInt32 {
     case Bird = 1
     case Object = 2
+    case Gap = 4
 }
 
 func setCollision(node: SKNode, type: ColliderType) {
@@ -91,22 +92,31 @@ func bottomPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     return pipe
 }
 
-func pipeFactory(bird: SKSpriteNode , frame: CGRect) -> [SKSpriteNode] {
+func pipeFactory(bird: SKSpriteNode , frame: CGRect) -> [SKNode] {
     let movementAmmount = CGFloat(arc4random() % UInt32(frame.height / 2))
     let pipeOffset = movementAmmount - frame.height / 4
 
-    let gap = (bird.size.height * 4) / 2
+    let gapHeight = (bird.size.height * 4) / 2
 
     let pipeMove = SKAction.move(by: CGVector(dx: -2 * frame.width, dy: 0), duration: TimeInterval(frame.width / 100))
     let pipeStart = CGPoint(x: frame.midX + frame.width, y: frame.midY)
     
-    let top = topPipeFactory(pos: pipeStart, offset: pipeOffset + gap)
+    let top = topPipeFactory(pos: pipeStart, offset: pipeOffset + gapHeight)
     top.run(pipeMove)
 
-    let bottom = bottomPipeFactory(pos: pipeStart, offset: pipeOffset - gap)
+    let bottom = bottomPipeFactory(pos: pipeStart, offset: pipeOffset - gapHeight)
     bottom.run(pipeMove)
     
-    return [top, bottom]
+    let gapNode = SKNode()
+    gapNode.position = CGPoint(x: frame.midX + frame.width, y: frame.midY + pipeOffset)
+    gapNode.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: top.size.width, height: gapHeight))
+    gapNode.physicsBody?.isDynamic = false
+    gapNode.run(pipeMove)
+    gapNode.physicsBody?.contactTestBitMask = ColliderType.Bird.rawValue
+    gapNode.physicsBody?.categoryBitMask = ColliderType.Gap.rawValue
+    gapNode.physicsBody?.collisionBitMask = ColliderType.Gap.rawValue
+
+    return [top, bottom, gapNode]
 }
 
 func sceneFactory(frame: CGRect) -> [SKNode] {
@@ -165,8 +175,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func didBegin(_ contact: SKPhysicsContact) {
-        self.speed = 0
-        self.ended = true
+        if contact.bodyA.categoryBitMask == ColliderType.Gap.rawValue || contact.bodyB.categoryBitMask == ColliderType.Gap.rawValue {
+            print("add one to score")
+        } else {
+            self.speed = 0
+            self.ended = true
+        }
     }
     
     override func update(_ currentTime: TimeInterval) {
