@@ -72,10 +72,10 @@ func groundFactory(pos: CGPoint, width: CGFloat) -> SKNode {
     return ground
 }
 
-func topPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
-    let pipeTexture = SKTexture(imageNamed: "pipe1.png")
+func pipeFactory(pos: CGPoint, offset: CGFloat, imageNamed: String) -> SKSpriteNode {
+    let pipeTexture = SKTexture(imageNamed: imageNamed)
     let pipe = SKSpriteNode(texture: pipeTexture)
-    pipe.position = CGPoint(x: pos.x, y: pos.y + pipeTexture.size().height / 2 + offset)
+    pipe.position = pos
     pipe.zPosition = -1
     pipe.physicsBody = SKPhysicsBody(rectangleOf: pipeTexture.size())
     pipe.physicsBody?.isDynamic = false
@@ -83,14 +83,17 @@ func topPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     return pipe
 }
 
+func topPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
+    let pipeTexture = SKTexture(imageNamed: "pipe1.png")
+    let pos = CGPoint(x: pos.x, y: pos.y + pipeTexture.size().height / 2 + offset)
+    let pipe = pipeFactory(pos: pos, offset: offset, imageNamed: "pipe1.png")
+    return pipe
+}
+
 func bottomPipeFactory(pos: CGPoint, offset: CGFloat) -> SKSpriteNode {
     let pipeTexture = SKTexture(imageNamed: "pipe2.png")
-    let pipe = SKSpriteNode(texture: pipeTexture)
-    pipe.position = CGPoint(x: pos.x, y: pos.y - pipeTexture.size().height / 2 + offset)
-    pipe.zPosition = -1
-    pipe.physicsBody = SKPhysicsBody(rectangleOf: pipeTexture.size())
-    pipe.physicsBody?.isDynamic = false
-    setCollision(node: pipe, type: ColliderType.Object)
+    let pos = CGPoint(x: pos.x, y: pos.y - pipeTexture.size().height / 2 + offset)
+    let pipe = pipeFactory(pos: pos, offset: offset, imageNamed: "pipe2.png")
     return pipe
 }
 
@@ -105,7 +108,7 @@ func gapFactory(frame: CGRect, pos: CGPoint, size: CGSize) -> SKNode {
     return gapNode
 }
 
-func pipeFactory(bird: SKSpriteNode , frame: CGRect) -> [SKNode] {
+func pipesFactory(bird: SKSpriteNode , frame: CGRect) -> [SKNode] {
     let movementAmmount = CGFloat(arc4random() % UInt32(frame.height / 2))
     let pipeOffset = movementAmmount - frame.height / 4
 
@@ -149,7 +152,7 @@ func sceneFactory(frame: CGRect) -> [SKNode] {
     let groundPos = CGPoint(x: frame.midX, y: -frame.height / 2)
     let ground = groundFactory(pos: groundPos, width: frame.width)
     
-    let pipes = pipeFactory(bird: bird, frame: frame)
+    let pipes = pipesFactory(bird: bird, frame: frame)
     
     let score = scoreFactory(frame: frame)
     
@@ -178,7 +181,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     @objc func makePipes() {
         let bird = self.childNode(withName: "bird") as! SKSpriteNode
 
-        let pipes = pipeFactory(bird: bird, frame: self.frame)
+        let pipes = pipesFactory(bird: bird, frame: self.frame)
         pipes.forEach { self.addChild($0) }
     }
 
